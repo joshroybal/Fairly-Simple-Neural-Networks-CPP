@@ -4,3 +4,6 @@ https://github.com/davecom/ClassicComputerScienceProblemsInPython/tree/master/Ch
 I used a standard normalish distribution clipped into (-1, 1) for the random weights instead
 of a uniform distribution. I used hyperbolic tangent and its derivative instead of sigmoid
 for the activation function/derivative.
+
+In directory with binary and .csv files e.g.
+Usage: ./driver iris.csv
