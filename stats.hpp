@@ -7,6 +7,8 @@
 
 class dataSet {
     public:
+		dataSet() {};
+		dataSet(const std::vector<float>& x) { x_ = x; };
         std::vector<float> getdataSet() const { return x_; };
         int getSize() const { return x_.size(); };
         float getMin() const 
@@ -17,14 +19,14 @@ class dataSet {
         float getStd() const { return sqrt(var_(mean_())); };
         void setUniform(int n) { set_uniform_(n); };
         void setNormal(int n, float m, float s) { set_normal_(n, m, s); };
-        void setscaledNormal(int n) { set_scaled_normal_(n); };
+        void setscaledNormal(int n, float s) { set_scaled_normal_(n, s); };
         void printdataSet() const { print_dataSet_(); };
     private:
         std::vector<float> x_;
         float random_() const;
         void set_uniform_(int);
         void set_normal_(int, float, float);
-        void set_scaled_normal_(int);
+        void set_scaled_normal_(int, float);
         void print_dataSet_() const;
         float mean_() const;
         float var_(float) const;

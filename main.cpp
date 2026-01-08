@@ -30,13 +30,6 @@ int main(int argc, char *argv[])
     
     parse_CSV(argv[1], parameters, classifications, labels, headers);
     std::vector<int> layer_structure(3);
-    int x = parameters[0].size();
-    int z = headers.size();
-    int b = (2.0 / 3.0) * x + z;
-    int y = 6 + b / 10.0;
-    layer_structure[0] = x;
-    // layer_structure[1] = y;
-    layer_structure[2] = z;
 
     // iris dataset training and testing
     normalize_by_feature_scaling(parameters);
@@ -53,25 +46,41 @@ int main(int argc, char *argv[])
     std::vector<std::string> testers_corrects(labels.begin() + n, labels.end());
     int siz = testers_corrects.size();
     
-    // int m = (2.0 / 3.0) * x + z;
+    /*
+    int x = parameters[0].size();
+    int z = headers.size();
+    int y = 6 + ((2.0 / 3.0) * x + z) / 10.0;
     int m = std::max(double(y + 1), ceil(x / 2));
-    
-    for (int nn = 1; nn < m; nn++) {
+    layer_structure[0] = x;
+    layer_structure[2] = z;
+	std::vector<float> results((m - 1) * 9);
+    */
+    layer_structure[0] = parameters[0].size();
+    layer_structure[2] = headers.size();
+    int x = (2.0 / 3.0) * layer_structure[0] + layer_structure[2];
+    int y = ceil(layer_structure[0] / 2.0) - 1;
+    int lo = (x < y) ? x : y;
+    int hi = (x < y) ? y : x;
+    // std::cout << x << ' ' << y << ' ' << m << std::endl;
+    std::vector<float> results(9 * (hi - lo + 1));
+	int j = 0;
+    for (int nn = lo; nn <= hi; nn++) {
         float lr = 0.9;
         for (int i = 0; i < 9; i++) {
-            layer_structure[0] = x;
             layer_structure[1] = nn;
-            layer_structure[2] = z;
             Network network(layer_structure, lr);
             for (int i = 0; i < 50; i++) network.Train(trainers, trainers_corrects);
-            // network.Dump();
-            int correct = network.Validate(testers, testers_corrects, headers, &interpret_output);
-            dump(parameters.size(), layer_structure, lr, correct,siz);
-            if (abs(correct - siz) < 0.001) return 0;
+	        int correct = network.Validate(testers, testers_corrects, headers, &interpret_output);
+            dump(parameters.size(), layer_structure, lr, correct, siz);
             lr -= 0.1;
+            results[j++] = correct / float(siz);
         }
-        // std::cout << std::endl;
     }
+    dataSet stats(results);
+    std::cout << "min = " << stats.getMin() << std::endl;
+    std::cout << "max = " << stats.getMax() << std::endl;
+    std::cout << "mean = " << stats.getMean() << std::endl;
+    std::cout << "std = " << stats.getStd() << std::endl;
     return 0;
 }
 
@@ -152,16 +161,14 @@ void parse_CSV(const std::string& filename,
 
 void dump(int n, const std::vector<int>& ls, float lr, int corr, int siz)
 {
-    int w = 6;
     float pct = corr / float(siz);
-    std::cout << std::setw(w) << std::right << n;
+    std::cout << n << ", ";
     std::vector<int>::const_iterator cit;
     for (cit = ls.begin(); cit != ls.end(); cit++)
-        std::cout << std::setw(w) << *cit;
-    std::cout << std::setw(w) << lr;
-    std::cout << std::setw(w) << n - siz;
-    std::cout << std::setw(w) << corr;
-    std::cout << std::setw(w) << siz << ' ';
-    std::cout << std::setw(w - 1) << std::setprecision(3) << std::left << pct;
-    std::cout << std::endl;
+        std::cout << *cit << ", ";
+    std::cout << std::setprecision(1) << lr << ", ";
+    std::cout << n - siz << ", ";
+    std::cout << corr << ", ";
+    std::cout << siz << ", ";
+    std::cout << std::setprecision(3) << pct << std::endl;
 }

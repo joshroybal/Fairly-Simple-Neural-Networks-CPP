@@ -3,7 +3,6 @@
 
 #include "neuron.hpp"
 #include "stats.hpp"
-//#include "util.hpp"
 
 class Layer {
    public:
@@ -17,11 +16,10 @@ class Layer {
             if (previous_layer_) {
 				int n = previous_layer_->num_neurons_;
                 dataSet x;
-                x.setscaledNormal(n);
+                x.setscaledNormal(n, sqrt(2.0 / (n + num_neurons_)));
                 random_weights = x.getdataSet();
                 Neuron neuron(random_weights, learning_rate_);
-                neurons_.push_back(neuron);
-            }
+                neurons_.push_back(neuron);            }
          }
          output_cache_.resize(num_neurons_);
          for (int i = 0; i < num_neurons_; i++)

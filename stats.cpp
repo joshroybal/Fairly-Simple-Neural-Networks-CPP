@@ -33,9 +33,10 @@ void dataSet::set_normal_(int n, float mu, float sigma)
     }
 }
 
-void dataSet::set_scaled_normal_(int n)
+void dataSet::set_scaled_normal_(int n, float sigma)
 {
-    float sigma = 0.9973F / 3.0F;
+    // float sigma = 0.9973F / 3.0F;
+    // float sigma = sqrt(1.0 / 30.0);
     x_.clear();
     x_.resize(n);
     for (int i = 0; i < n; i += 2)
