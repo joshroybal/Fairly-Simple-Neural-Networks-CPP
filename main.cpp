@@ -7,32 +7,49 @@
 #include <cstdlib>
 #include <ctime>
 #include "network.hpp"
+#include "util.hpp"
     
 int main(int argc, char *argv[])
 {
-    std::string interpret_output(const std::vector<float>&, 
-		const std::vector<std::string>&);
-    void parse_CSV(const std::string&, std::vector<std::vector<float> >&, 
-        std::vector<std::vector<float> >&, std::vector<std::string>&, 
-        std::vector<std::string>&);
-    void dump(int, const std::vector<int>&, float, int, int);
-
-	if (argc < 2) {
-		std::cerr << "Usage: " << argv[0] << " filename" << std::endl;
+    void model(char *, float (*)(float), float (*)(float), 
+            void (*)(std::vector<std::vector<float> >&));
+    
+    if (argc < 2) {
+	    std::cerr << "Usage: " << argv[0] << " filename" << std::endl;
 		return 1;
 	}
   
     srand(time(0));
+    model(argv[1], &sigmoid, &derivative_sigmoid, &normalize_by_z_score);
+    float (*fnptr)(float) = &std::tanh;
+    model(argv[1], fnptr, &derivative_tanh, &normalize_by_z_score);
+    model(argv[1], &ReLU, &derivative_ReLU, &normalize_by_feature_scaling);
+    model(argv[1], &leaky_ReLU, &derivative_leaky_ReLU, &normalize_by_feature_scaling);
+    return 0;
+}
+
+void model(char* filename, float (*activation_function)(float),
+        float (*derivative_activation_function)(float),
+        void (*scaling_function)(std::vector<std::vector<float> >&))
+{
+   std::string interpret_output(const std::vector<float>&, 
+	const std::vector<std::string>&);
+   void parse_CSV(const std::string&, std::vector<std::vector<float> >&, 
+      std::vector<std::vector<float> >&, std::vector<std::string>&, 
+      std::vector<std::string>&);
+   void dump(int, const std::vector<int>&, float, int, int);
 
     std::vector<std::vector<float> > parameters;
     std::vector<std::vector<float> > classifications;
     std::vector<std::string> labels, headers;
-    
-    parse_CSV(argv[1], parameters, classifications, labels, headers);
+
+    parse_CSV(filename, parameters, classifications, labels, headers);
     std::vector<int> layer_structure(3);
 
     // iris dataset training and testing
-    normalize_by_feature_scaling(parameters);
+    // normalize_by_feature_scaling(parameters);
+    // normalize_by_z_scoring(parameters);
+    scaling_function(parameters);
 
     // trainers
     int n = 0.8 * parameters.size();
@@ -46,42 +63,44 @@ int main(int argc, char *argv[])
     std::vector<std::string> testers_corrects(labels.begin() + n, labels.end());
     int siz = testers_corrects.size();
     
-    /*
+
     int x = parameters[0].size();
     int z = headers.size();
-    int y = 6 + ((2.0 / 3.0) * x + z) / 10.0;
-    int m = std::max(double(y + 1), ceil(x / 2));
     layer_structure[0] = x;
     layer_structure[2] = z;
-	std::vector<float> results((m - 1) * 9);
-    */
-    layer_structure[0] = parameters[0].size();
-    layer_structure[2] = headers.size();
-    int x = (2.0 / 3.0) * layer_structure[0] + layer_structure[2];
-    int y = ceil(layer_structure[0] / 2.0) - 1;
-    int lo = (x < y) ? x : y;
-    int hi = (x < y) ? y : x;
-    // std::cout << x << ' ' << y << ' ' << m << std::endl;
-    std::vector<float> results(9 * (hi - lo + 1));
-	int j = 0;
-    for (int nn = lo; nn <= hi; nn++) {
+    int m = std::max(12, int(std::ceil(x / 2)) - 1);
+	 std::vector<float> results(m * 9);
+     std::vector<std::vector<float> > table(m);
+	 int j = 0;
+    for (int nn = 1; nn <= m; nn++) {
         float lr = 0.9;
+        std::vector<float> row(9);
         for (int i = 0; i < 9; i++) {
             layer_structure[1] = nn;
             Network network(layer_structure, lr);
-            for (int i = 0; i < 50; i++) network.Train(trainers, trainers_corrects);
-	        int correct = network.Validate(testers, testers_corrects, headers, &interpret_output);
-            dump(parameters.size(), layer_structure, lr, correct, siz);
+            for (int i = 0; i < 10; i++) {
+                network.Train(trainers, trainers_corrects, activation_function, 
+                        derivative_activation_function);
+            }
+	        int correct = network.Validate(testers, testers_corrects, headers, 
+                    &interpret_output, activation_function);
+            float result = correct / float(siz);
+            row[i] = result;
+            results[j++] = result;
             lr -= 0.1;
-            results[j++] = correct / float(siz);
         }
+        // print_vector(row);
+        table[nn-1] = row;
     }
     dataSet stats(results);
-    std::cout << "min = " << stats.getMin() << std::endl;
-    std::cout << "max = " << stats.getMax() << std::endl;
-    std::cout << "mean = " << stats.getMean() << std::endl;
-    std::cout << "std = " << stats.getStd() << std::endl;
-    return 0;
+    print_vector(stats.getStats());
+    /*
+    std::vector<std::vector<float> >::const_iterator cit;
+    for (cit = table.begin(); cit != table.end(); ++cit) {
+         dataSet x(*cit);
+         print_vector(x.getStats());
+    }
+    */
 }
 
 std::string interpret_output(const std::vector<float>& output, 

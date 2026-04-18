@@ -14,7 +14,7 @@ class Neuron {
       float getLearningRate() { return learning_rate_; };
       float getOutputCache() { return output_cache_; };
       float getDelta() { return delta_; };
-      float Output(const std::vector<float>& inputs) { return output_(inputs); };
+      float Output(const std::vector<float>& inputs, float(*activation_function)(float)) { return output_(inputs, activation_function); };
       void setWeight(int n, float r) { weights_[n] = r; }
       void setDelta(float n) { delta_ = n; };
       void printWeights() { print_vector(weights_); };
@@ -23,7 +23,7 @@ class Neuron {
       float learning_rate_;
       float output_cache_;
       float delta_;
-      float output_(const std::vector<float>&);
+      float output_(const std::vector<float>&, float (*)(float));
 };
 
 #endif

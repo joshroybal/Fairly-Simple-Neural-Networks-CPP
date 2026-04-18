@@ -1,29 +1,45 @@
 #include <iostream>
+#include <iomanip>
 #include <cmath>
 #include <algorithm>
 #include "util.hpp"
+#include "stats.hpp"
 
-float uniform()
+float sigmoid(float x)
 {
-    return rand() / float(RAND_MAX);
+   return 1.0 / (1.0 + exp(-x));
 }
 
-float normal()
+float derivative_sigmoid(float x)
 {
-    static int i = 0;
-    const float pi = 3.14159265359;
-    const float sigma = 0.997 / 3.0;
-    ++i;
-    while (true) {
-        float u = uniform();
-        float v = uniform();
-        float z;
-        if (i % 2 == 0) 
-            z = sigma * sqrt(-2.0 * log(u + 1e-9)) * cos(2.0 * pi * v);
-        else
-            z = sigma * sqrt(-2.0 * log(u + 1e-9)) * sin(2.0 * pi * v);
-        if (z > -1.0 && z < 1.0) return z;
-    }
+   float sig = sigmoid(x);
+   return sig * (1.0 - sig);
+}
+
+float derivative_tanh(float x)
+{
+   float y = tanh(x);
+   return 1.0 - y * y;
+}
+
+float ReLU(float x)
+{
+   return (x > 0) ? x : 0.0;
+}
+
+float derivative_ReLU(float x)
+{
+   return (x > 0) ? 1.0 : 0.0;
+}
+
+float leaky_ReLU(float x)
+{
+   return (x > 0) ? x : 0.01 * x;
+}
+
+float derivative_leaky_ReLU(float x)
+{
+   return (x > 0) ? 1.0 : 0.01;
 }
 
 float dot_product(const std::vector<float>& u, const std::vector<float>& v)
@@ -32,12 +48,6 @@ float dot_product(const std::vector<float>& u, const std::vector<float>& v)
     int n = std::min(u.size(), v.size());
     for (int i = 0; i < n; i++) res += u[i] * v[i];
     return res;
-}
-
-float derivative_tanh(float x)
-{
-    float t = tanh(x);
-    return 1 - t*t;
 }
 
 void normalize_by_feature_scaling(std::vector<std::vector<float> >& dataset)
@@ -53,7 +63,22 @@ void normalize_by_feature_scaling(std::vector<std::vector<float> >& dataset)
         std::vector<float>::const_iterator minimum;
         minimum = std::min_element(column.begin(), column.end());
         for (int row_num = 0; row_num < numrows; row_num++)
-            dataset[row_num][col_num] = 2 * ((dataset[row_num][col_num] - *minimum) / (*maximum - *minimum)) - 1;
+            dataset[row_num][col_num] = 0.25 * (dataset[row_num][col_num] - *minimum) / (*maximum - *minimum);
+    }
+}
+
+void normalize_by_z_score(std::vector<std::vector<float> >& dataset)
+{
+    int m = dataset.size();
+    int n = dataset[0].size();
+    for (int j = 0; j < n; ++j) {
+        std::vector<float> column(m);
+        for (int i = 0; i < m; ++i)
+            column[i] = dataset[i][j];
+        dataSet feature(column);
+        std::vector<float> z(feature.getZScores());
+        for (int i = 0; i < m; ++i)
+            dataset[i][j] = z[i];
     }
 }
 
@@ -66,8 +91,10 @@ void print_vector(const std::vector<int>& v)
 
 void print_vector(const std::vector<float>& v)
 {
-    for (std::vector<float>::const_iterator cit = v.begin(); cit != v.end(); cit++)
-        std::cout << ' ' << *cit;
+    for (std::vector<float>::const_iterator cit = v.begin(); cit != v.end(); cit++) {
+        std::cout << *cit;
+        if (cit + 1 != v.end()) std::cout << ',';
+    }
     std::cout << std::endl;
 }
 
